@@ -1,9 +1,16 @@
 use crate::game::{GameElement, Point};
-use crate::UpdateArgs;
-use graphics::Graphics;
-use opengl_graphics::GlGraphics;
-use piston::{ButtonArgs, RenderArgs};
+use crate::{UpdateArgs, CELL_SIZE};
+use base64::decode;
+use graphics::color::BLUE;
+use graphics::{Context, Graphics, Image};
+use image::io::Reader;
+use opengl_graphics::{GlGraphics, Texture, TextureSettings};
+use piston::{Button, ButtonArgs, ButtonState, MouseButton, RenderArgs};
+use std::fs::File;
+use std::io::Cursor;
+use std::path::Path;
 
+#[derive(PartialEq)]
 pub enum CellState {
     Closed,
     Pressed,
@@ -39,11 +46,35 @@ impl Cell {
     pub fn set_number(&mut self, number: u8) {
         self.content = CellContent::Number(number);
     }
+
+    pub fn button_press(&mut self, button_args: &ButtonArgs) {
+        dbg!(button_args.button);
+        if button_args.state == ButtonState::Release {
+            if button_args.button == Button::from(MouseButton::Left) {
+                if self.state == CellState::Closed {
+                    self.state = CellState::Opened;
+                }
+            } else if button_args.button == Button::from(MouseButton::Right) {
+                if self.state == CellState::Closed {
+                    self.state = CellState::Flagged;
+                } else if self.state == CellState::Flagged {
+                    self.state = CellState::Closed;
+                }
+            }
+        }
+    }
 }
 
 impl GameElement for Cell {
-    fn render(&self, _render_args: &RenderArgs, _gl: &mut GlGraphics) {}
-    fn update(&mut self, _update_args: &UpdateArgs) {}
+    fn render(&self, render_args: &RenderArgs, gl: &mut GlGraphics) {
+        gl.draw(render_args.viewport(), |c, gl| match self.state {
+            CellState::Opened => {
+                super::draw::draw_opened_cell(&self.position, &self.content, render_args, gl)
+            }
+            CellState::Flagged => super::draw::draw_flagged_cell(&self.position, render_args, gl),
+            _ => super::draw::draw_closed_cell(&self.position, render_args, gl),
+        })
+    }
 
-    fn button_press(&mut self, _button_args: &ButtonArgs) {}
+    fn update(&mut self, _update_args: &UpdateArgs) {}
 }

@@ -1,11 +1,11 @@
 extern crate base64;
 extern crate glutin_window;
 extern crate graphics;
+extern crate image;
 extern crate opengl_graphics;
 extern crate piston;
 
 mod game;
-mod resources;
 
 use crate::game::{GameElement, CELL_SIZE};
 use glutin_window::GlutinWindow;
@@ -13,7 +13,7 @@ use opengl_graphics::{GlGraphics, OpenGL, Texture};
 use piston::event_loop::{EventSettings, Events};
 use piston::input::{RenderArgs, RenderEvent, UpdateArgs, UpdateEvent};
 use piston::window::WindowSettings;
-use piston::{ButtonEvent, Event};
+use piston::{ButtonEvent, Event, MouseCursorEvent};
 
 fn main() {
     let opengl = OpenGL::V3_2;
@@ -41,6 +41,10 @@ fn main() {
 
         if let Some(args) = e.update_args() {
             field.update(&args);
+        }
+
+        if let Some(args) = e.mouse_cursor_args() {
+            field.mouse_move(&args);
         }
 
         if let Some(args) = e.button_args() {
