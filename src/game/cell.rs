@@ -1,20 +1,12 @@
+use piston::RenderArgs;
+
 use crate::game::draw::DrawData;
 use crate::game::{GameElement, Point};
-use crate::{UpdateArgs, CELL_SIZE};
-use base64::decode;
-use graphics::color::BLUE;
-use graphics::{Context, Graphics, Image};
-use image::io::Reader;
-use opengl_graphics::{GlGraphics, Texture, TextureSettings};
-use piston::{Button, ButtonArgs, ButtonState, MouseButton, RenderArgs};
-use std::fs::File;
-use std::io::Cursor;
-use std::path::Path;
+use crate::UpdateArgs;
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Copy, Clone)]
 pub enum CellState {
     Closed,
-    Pressed,
     Opened,
     Flagged,
 }
@@ -27,9 +19,28 @@ pub enum CellContent {
 }
 
 pub struct Cell {
-    pub state: CellState,
-    pub content: CellContent,
-    pub position: Point,
+    state: CellState,
+    content: CellContent,
+    position: Point,
+}
+
+//reads
+impl Cell {
+    pub fn state(&self) -> CellState {
+        self.state
+    }
+
+    pub fn position(&self) -> Point {
+        self.position
+    }
+
+    pub fn is_mine(&self) -> bool {
+        self.content == CellContent::Mine
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.content == CellContent::Empty
+    }
 }
 
 impl Cell {
@@ -53,20 +64,16 @@ impl Cell {
         }
     }
 
-    pub fn button_press(&mut self, button_args: &ButtonArgs) {
-        if button_args.state == ButtonState::Release {
-            if button_args.button == Button::from(MouseButton::Left) {
-                if self.state == CellState::Closed {
-                    self.state = CellState::Opened;
-                }
-            } else if button_args.button == Button::from(MouseButton::Right) {
-                if self.state == CellState::Closed {
-                    self.state = CellState::Flagged;
-                } else if self.state == CellState::Flagged {
-                    self.state = CellState::Closed;
-                }
-            }
-        }
+    pub fn open(&mut self) {
+        self.state = CellState::Opened;
+    }
+
+    pub fn flag(&mut self) {
+        self.state = CellState::Flagged;
+    }
+
+    pub fn unflag(&mut self) {
+        self.state = CellState::Closed;
     }
 }
 
@@ -75,15 +82,11 @@ impl GameElement for Cell {
         let gl = &mut dd.gl;
         let glyph_cache = &mut dd.glyph_cache;
         gl.draw(render_args.viewport(), |c, gl| match self.state {
-            CellState::Opened => super::draw::draw_opened_cell(
-                &self.position,
-                &self.content,
-                render_args,
-                gl,
-                glyph_cache,
-            ),
-            CellState::Flagged => super::draw::draw_flagged_cell(&self.position, render_args, gl),
-            _ => super::draw::draw_closed_cell(&self.position, render_args, gl),
+            CellState::Opened => {
+                super::draw::draw_opened_cell(&self.position, &self.content, &c, gl, glyph_cache)
+            }
+            CellState::Flagged => super::draw::draw_flagged_cell(&self.position, &c, gl),
+            _ => super::draw::draw_closed_cell(&self.position, &c, gl),
         })
     }
 

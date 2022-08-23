@@ -1,21 +1,16 @@
+use graphics::math::Matrix2d;
+use graphics::{Context, Transformed};
+use opengl_graphics::{GlGraphics, GlyphCache};
+
 use crate::game::cell::CellContent;
 use crate::game::Point;
 use crate::CELL_SIZE;
-use graphics::math::Matrix2d;
-use graphics::types::{Color, FontSize};
-use graphics::Context;
-use graphics::Transformed;
-use opengl_graphics::{GlGraphics, GlyphCache, TextureSettings};
-use piston::RenderArgs;
-use std::fs;
-use std::path::{Path, PathBuf};
 
 pub struct DrawData<'a> {
     pub glyph_cache: GlyphCache<'a>,
     pub gl: GlGraphics,
 }
 
-const WHITE: Color = [1.0, 1.0, 1.0, 1.0];
 const BLUE: [f32; 4] = [0.0, 0.6352941176470588, 0.9098039215686275, 1.0];
 const LIGHT_BLUE: [f32; 4] = [0.6, 0.8509803921568627, 0.9176470588235294, 1.0];
 const DARK_BLUE: [f32; 4] = [
@@ -154,121 +149,115 @@ fn draw_flag_0(position: &Point, gl: &mut GlGraphics, transform: Matrix2d) {
     );
 }
 
-pub fn draw_closed_cell(position: &Point, render_args: &RenderArgs, gl: &mut GlGraphics) {
-    gl.draw(render_args.viewport(), |c, gl| {
-        draw_closed_cell_0(position, c.transform, gl)
-    });
+pub fn draw_closed_cell(position: &Point, c: &Context, gl: &mut GlGraphics) {
+    draw_closed_cell_0(position, c.transform, gl)
 }
 
-pub fn draw_flagged_cell(position: &Point, render_args: &RenderArgs, gl: &mut GlGraphics) {
-    gl.draw(render_args.viewport(), |c, gl| {
-        let transform = c.transform;
-        draw_closed_cell_0(position, transform, gl);
-        draw_flag_0(position, gl, transform);
-    });
+pub fn draw_flagged_cell(position: &Point, c: &Context, gl: &mut GlGraphics) {
+    let transform = c.transform;
+    draw_closed_cell_0(position, transform, gl);
+    draw_flag_0(position, gl, transform);
 }
 
 pub fn draw_opened_cell(
     position: &Point,
     content: &CellContent,
-    render_args: &RenderArgs,
+    c: &Context,
     gl: &mut GlGraphics,
     glyph_cache: &mut GlyphCache,
 ) {
-    gl.draw(render_args.viewport(), |c, gl| {
-        let transform = c.transform;
-        let square = graphics::rectangle::square(
+    let transform = c.transform;
+    let square = graphics::rectangle::square(
+        (position.x * CELL_SIZE) as f64,
+        (position.y * CELL_SIZE) as f64,
+        CELL_SIZE as f64,
+    );
+    graphics::rectangle(GRAY, square, transform, gl);
+    graphics::line_from_to(
+        DARK_BLUE,
+        1.0,
+        [
             (position.x * CELL_SIZE) as f64,
             (position.y * CELL_SIZE) as f64,
-            CELL_SIZE as f64,
-        );
-        graphics::rectangle(GRAY, square, transform, gl);
-        graphics::line_from_to(
-            DARK_BLUE,
-            1.0,
-            [
-                (position.x * CELL_SIZE) as f64,
-                (position.y * CELL_SIZE) as f64,
-            ],
-            [
-                (position.x * CELL_SIZE + CELL_SIZE - 1) as f64,
-                (position.y * CELL_SIZE) as f64,
-            ],
-            transform,
-            gl,
-        );
-        graphics::line_from_to(
-            DARK_BLUE,
-            1.0,
-            [
-                (position.x * CELL_SIZE + CELL_SIZE - 1) as f64,
-                (position.y * CELL_SIZE) as f64,
-            ],
-            [
-                (position.x * CELL_SIZE + CELL_SIZE - 1) as f64,
-                (position.y * CELL_SIZE + CELL_SIZE - 2) as f64,
-            ],
-            transform,
-            gl,
-        );
+        ],
+        [
+            (position.x * CELL_SIZE + CELL_SIZE - 1) as f64,
+            (position.y * CELL_SIZE) as f64,
+        ],
+        transform,
+        gl,
+    );
+    graphics::line_from_to(
+        DARK_BLUE,
+        1.0,
+        [
+            (position.x * CELL_SIZE + CELL_SIZE - 1) as f64,
+            (position.y * CELL_SIZE) as f64,
+        ],
+        [
+            (position.x * CELL_SIZE + CELL_SIZE - 1) as f64,
+            (position.y * CELL_SIZE + CELL_SIZE - 2) as f64,
+        ],
+        transform,
+        gl,
+    );
 
-        graphics::line_from_to(
-            DARK_BLUE,
-            1.0,
-            [
-                (position.x * CELL_SIZE) as f64,
-                (position.y * CELL_SIZE + 1) as f64,
-            ],
-            [
-                (position.x * CELL_SIZE) as f64,
-                (position.y * CELL_SIZE + CELL_SIZE - 1) as f64,
-            ],
-            transform,
-            gl,
-        );
-        graphics::line_from_to(
-            DARK_BLUE,
-            1.0,
-            [
-                (position.x * CELL_SIZE) as f64,
-                (position.y * CELL_SIZE + CELL_SIZE - 1) as f64,
-            ],
-            [
-                (position.x * CELL_SIZE + CELL_SIZE - 1) as f64,
-                (position.y * CELL_SIZE + CELL_SIZE - 1) as f64,
-            ],
-            transform,
-            gl,
-        );
-        match content {
-            CellContent::Mine => {
-                graphics::circle_arc(
-                    DARK_RED,
-                    1.0,
-                    0.0,
-                    360.0,
-                    [2.0, 2.0, (CELL_SIZE - 4) as f64, (CELL_SIZE - 4) as f64],
-                    transform.trans(
-                        (position.x * CELL_SIZE).into(),
-                        (position.y * CELL_SIZE).into(),
-                    ),
-                    gl,
-                );
-            }
-            CellContent::Number(number) => {
-                graphics::text(
-                    TEXT_COLORS[(number - 1) as usize],
-                    (CELL_SIZE as f64 * 0.7) as u32,
-                    number.to_string().as_str(),
-                    glyph_cache,
-                    transform.trans(
-                        (position.x * CELL_SIZE + (CELL_SIZE / 4)).into(),
-                        (position.y * CELL_SIZE + (CELL_SIZE / 5 * 4)).into(),
-                    ),
-                    gl,
-                );
-            }
-            _ => {} //nothing
+    graphics::line_from_to(
+        DARK_BLUE,
+        1.0,
+        [
+            (position.x * CELL_SIZE) as f64,
+            (position.y * CELL_SIZE + 1) as f64,
+        ],
+        [
+            (position.x * CELL_SIZE) as f64,
+            (position.y * CELL_SIZE + CELL_SIZE - 1) as f64,
+        ],
+        transform,
+        gl,
+    );
+    graphics::line_from_to(
+        DARK_BLUE,
+        1.0,
+        [
+            (position.x * CELL_SIZE) as f64,
+            (position.y * CELL_SIZE + CELL_SIZE - 1) as f64,
+        ],
+        [
+            (position.x * CELL_SIZE + CELL_SIZE - 1) as f64,
+            (position.y * CELL_SIZE + CELL_SIZE - 1) as f64,
+        ],
+        transform,
+        gl,
+    );
+    match content {
+        CellContent::Mine => {
+            graphics::circle_arc(
+                DARK_RED,
+                1.0,
+                0.0,
+                360.0,
+                [2.0, 2.0, (CELL_SIZE - 4) as f64, (CELL_SIZE - 4) as f64],
+                transform.trans(
+                    (position.x * CELL_SIZE).into(),
+                    (position.y * CELL_SIZE).into(),
+                ),
+                gl,
+            );
         }
-    });
+        CellContent::Number(number) => {
+            graphics::text(
+                TEXT_COLORS[(number - 1) as usize],
+                (CELL_SIZE as f64 * 0.7) as u32,
+                number.to_string().as_str(),
+                glyph_cache,
+                transform.trans(
+                    (position.x * CELL_SIZE + (CELL_SIZE / 4)).into(),
+                    (position.y * CELL_SIZE + (CELL_SIZE / 5 * 4)).into(),
+                ),
+                gl,
+            );
+        }
+        _ => {} //nothing
+    }
 }

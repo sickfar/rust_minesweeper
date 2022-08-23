@@ -11,18 +11,17 @@ mod game;
 use crate::game::{GameElement, CELL_SIZE};
 use glutin_window::GlutinWindow;
 use graphics::glyph_cache::rusttype::GlyphCache;
-use opengl_graphics::{GlGraphics, OpenGL, Texture, TextureSettings};
+use opengl_graphics::{GlGraphics, OpenGL, TextureSettings};
 use piston::event_loop::{EventSettings, Events};
-use piston::input::{RenderArgs, RenderEvent, UpdateArgs, UpdateEvent};
+use piston::input::{RenderEvent, UpdateArgs, UpdateEvent};
 use piston::window::WindowSettings;
-use piston::{ButtonEvent, Event, MouseCursorEvent};
+use piston::{ButtonEvent, MouseCursorEvent};
 
 fn main() {
     let opengl = OpenGL::V3_2;
 
     let field_size = game::field::FIELD_SIZE_40;
 
-    // Create a Glutin window.
     let mut window: GlutinWindow = WindowSettings::new(
         "Rust Minesweeper",
         [field_size.width * CELL_SIZE, field_size.height * CELL_SIZE],

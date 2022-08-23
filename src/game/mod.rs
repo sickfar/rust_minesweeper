@@ -1,7 +1,7 @@
+use piston::RenderArgs;
+
 use crate::game::draw::DrawData;
 use crate::UpdateArgs;
-use opengl_graphics::GlGraphics;
-use piston::{ButtonArgs, RenderArgs};
 
 mod cell;
 pub(crate) mod draw;
@@ -9,14 +9,12 @@ pub(crate) mod field;
 
 pub const CELL_SIZE: u32 = 30;
 
-pub const MINE_COUNT: u32 = 10;
-
 pub struct FieldSize {
     pub width: u32,
     pub height: u32,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct Point {
     pub x: u32,
     pub y: u32,
