@@ -2,10 +2,18 @@ use crate::game::cell::CellContent;
 use crate::game::Point;
 use crate::CELL_SIZE;
 use graphics::math::Matrix2d;
-use graphics::types::Color;
+use graphics::types::{Color, FontSize};
 use graphics::Context;
-use opengl_graphics::GlGraphics;
+use graphics::Transformed;
+use opengl_graphics::{GlGraphics, GlyphCache, TextureSettings};
 use piston::RenderArgs;
+use std::fs;
+use std::path::{Path, PathBuf};
+
+pub struct DrawData<'a> {
+    pub glyph_cache: GlyphCache<'a>,
+    pub gl: GlGraphics,
+}
 
 const WHITE: Color = [1.0, 1.0, 1.0, 1.0];
 const BLUE: [f32; 4] = [0.0, 0.6352941176470588, 0.9098039215686275, 1.0];
@@ -23,6 +31,17 @@ const GRAY: [f32; 4] = [
     1.0,
 ];
 const DARK_RED: [f32; 4] = [0.5333333333333333, 0.0, 0.0823529411764706, 1.0];
+
+const TEXT_COLORS: [[f32; 4]; 8] = [
+    [0.0, 0.0, 0.0, 1.0],
+    [0.0, 0.0, 0.0, 1.0],
+    [0.0, 0.0, 0.0, 1.0],
+    [0.0, 0.0, 0.0, 1.0],
+    [0.0, 0.0, 0.0, 1.0],
+    [0.0, 0.0, 0.0, 1.0],
+    [0.0, 0.0, 0.0, 1.0],
+    [0.0, 0.0, 0.0, 1.0],
+];
 
 fn draw_closed_cell_0(position: &Point, transform: Matrix2d, gl: &mut GlGraphics) {
     let square = graphics::rectangle::square(
@@ -154,6 +173,7 @@ pub fn draw_opened_cell(
     content: &CellContent,
     render_args: &RenderArgs,
     gl: &mut GlGraphics,
+    glyph_cache: &mut GlyphCache,
 ) {
     gl.draw(render_args.viewport(), |c, gl| {
         let transform = c.transform;
@@ -221,9 +241,34 @@ pub fn draw_opened_cell(
             gl,
         );
         match content {
-            CellContent::Empty => {}
-            CellContent::Mine => {}
-            CellContent::Number(number) => {}
+            CellContent::Mine => {
+                graphics::circle_arc(
+                    DARK_RED,
+                    1.0,
+                    0.0,
+                    360.0,
+                    [2.0, 2.0, (CELL_SIZE - 4) as f64, (CELL_SIZE - 4) as f64],
+                    transform.trans(
+                        (position.x * CELL_SIZE).into(),
+                        (position.y * CELL_SIZE).into(),
+                    ),
+                    gl,
+                );
+            }
+            CellContent::Number(number) => {
+                graphics::text(
+                    TEXT_COLORS[(number - 1) as usize],
+                    (CELL_SIZE as f64 * 0.7) as u32,
+                    number.to_string().as_str(),
+                    glyph_cache,
+                    transform.trans(
+                        (position.x * CELL_SIZE + (CELL_SIZE / 4)).into(),
+                        (position.y * CELL_SIZE + (CELL_SIZE / 5 * 4)).into(),
+                    ),
+                    gl,
+                );
+            }
+            _ => {} //nothing
         }
     });
 }

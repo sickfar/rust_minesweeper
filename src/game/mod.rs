@@ -1,9 +1,10 @@
+use crate::game::draw::DrawData;
 use crate::UpdateArgs;
 use opengl_graphics::GlGraphics;
 use piston::{ButtonArgs, RenderArgs};
 
 mod cell;
-mod draw;
+pub(crate) mod draw;
 pub(crate) mod field;
 
 pub const CELL_SIZE: u32 = 30;
@@ -22,6 +23,6 @@ pub struct Point {
 }
 
 pub trait GameElement {
-    fn render(&self, render_args: &RenderArgs, gl: &mut GlGraphics);
+    fn render(&self, render_args: &RenderArgs, dd: &mut DrawData);
     fn update(&mut self, update_args: &UpdateArgs);
 }

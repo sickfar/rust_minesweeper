@@ -1,3 +1,4 @@
+use crate::game::draw::DrawData;
 use crate::game::{GameElement, Point};
 use crate::{UpdateArgs, CELL_SIZE};
 use base64::decode;
@@ -18,6 +19,7 @@ pub enum CellState {
     Flagged,
 }
 
+#[derive(PartialEq)]
 pub enum CellContent {
     Empty,
     Mine,
@@ -44,11 +46,14 @@ impl Cell {
     }
 
     pub fn set_number(&mut self, number: u8) {
-        self.content = CellContent::Number(number);
+        if number > 0 {
+            self.content = CellContent::Number(number);
+        } else {
+            self.content = CellContent::Empty;
+        }
     }
 
     pub fn button_press(&mut self, button_args: &ButtonArgs) {
-        dbg!(button_args.button);
         if button_args.state == ButtonState::Release {
             if button_args.button == Button::from(MouseButton::Left) {
                 if self.state == CellState::Closed {
@@ -66,11 +71,17 @@ impl Cell {
 }
 
 impl GameElement for Cell {
-    fn render(&self, render_args: &RenderArgs, gl: &mut GlGraphics) {
+    fn render(&self, render_args: &RenderArgs, dd: &mut DrawData) {
+        let gl = &mut dd.gl;
+        let glyph_cache = &mut dd.glyph_cache;
         gl.draw(render_args.viewport(), |c, gl| match self.state {
-            CellState::Opened => {
-                super::draw::draw_opened_cell(&self.position, &self.content, render_args, gl)
-            }
+            CellState::Opened => super::draw::draw_opened_cell(
+                &self.position,
+                &self.content,
+                render_args,
+                gl,
+                glyph_cache,
+            ),
             CellState::Flagged => super::draw::draw_flagged_cell(&self.position, render_args, gl),
             _ => super::draw::draw_closed_cell(&self.position, render_args, gl),
         })
