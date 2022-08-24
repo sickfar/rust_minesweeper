@@ -8,7 +8,6 @@ use crate::CELL_SIZE;
 
 pub struct DrawData<'a> {
     pub glyph_cache: GlyphCache<'a>,
-    pub gl: GlGraphics,
 }
 
 const BLUE: [f32; 4] = [0.0, 0.6352941176470588, 0.9098039215686275, 1.0];
@@ -38,7 +37,7 @@ const TEXT_COLORS: [[f32; 4]; 8] = [
     [0.0, 0.0, 0.0, 1.0],
 ];
 
-fn draw_closed_cell_0(position: &Point, transform: Matrix2d, gl: &mut GlGraphics) {
+fn draw_closed_cell_0(position: &Point<u32>, transform: Matrix2d, gl: &mut GlGraphics) {
     let square = graphics::rectangle::square(
         (position.x * CELL_SIZE) as f64,
         (position.y * CELL_SIZE) as f64,
@@ -104,7 +103,7 @@ fn draw_closed_cell_0(position: &Point, transform: Matrix2d, gl: &mut GlGraphics
     );
 }
 
-fn draw_flag_0(position: &Point, gl: &mut GlGraphics, transform: Matrix2d) {
+fn draw_flag_0(position: &Point<u32>, gl: &mut GlGraphics, transform: Matrix2d) {
     graphics::line_from_to(
         GRAY,
         1.0,
@@ -149,18 +148,18 @@ fn draw_flag_0(position: &Point, gl: &mut GlGraphics, transform: Matrix2d) {
     );
 }
 
-pub fn draw_closed_cell(position: &Point, c: &Context, gl: &mut GlGraphics) {
+pub fn draw_closed_cell(position: &Point<u32>, c: &Context, gl: &mut GlGraphics) {
     draw_closed_cell_0(position, c.transform, gl)
 }
 
-pub fn draw_flagged_cell(position: &Point, c: &Context, gl: &mut GlGraphics) {
+pub fn draw_flagged_cell(position: &Point<u32>, c: &Context, gl: &mut GlGraphics) {
     let transform = c.transform;
     draw_closed_cell_0(position, transform, gl);
     draw_flag_0(position, gl, transform);
 }
 
 pub fn draw_opened_cell(
-    position: &Point,
+    position: &Point<u32>,
     content: &CellContent,
     c: &Context,
     gl: &mut GlGraphics,

@@ -7,8 +7,6 @@ authors = ["Roman Aksenenko <sickfar69@gmail.com>"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-base64 = "0.13.0"
-image = "0.24.3"
 piston = "0.53.1"
 piston2d-graphics = "0.42.0"
 piston2d-opengl_graphics = "0.81.0"

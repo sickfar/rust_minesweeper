@@ -1,3 +1,5 @@
+use graphics::Context;
+use opengl_graphics::GlGraphics;
 use piston::RenderArgs;
 
 use crate::game::draw::DrawData;
@@ -21,7 +23,7 @@ pub enum CellContent {
 pub struct Cell {
     state: CellState,
     content: CellContent,
-    position: Point,
+    position: Point<u32>,
 }
 
 //reads
@@ -30,7 +32,7 @@ impl Cell {
         self.state
     }
 
-    pub fn position(&self) -> Point {
+    pub fn position(&self) -> Point<u32> {
         self.position
     }
 
@@ -44,7 +46,7 @@ impl Cell {
 }
 
 impl Cell {
-    pub fn new(point: Point) -> Cell {
+    pub fn new(point: Point<u32>) -> Cell {
         Cell {
             state: CellState::Closed,
             content: CellContent::Empty,
@@ -78,16 +80,15 @@ impl Cell {
 }
 
 impl GameElement for Cell {
-    fn render(&self, render_args: &RenderArgs, dd: &mut DrawData) {
-        let gl = &mut dd.gl;
+    fn render(&self, _: &RenderArgs, c: Context, gl: &mut GlGraphics, dd: &mut DrawData) {
         let glyph_cache = &mut dd.glyph_cache;
-        gl.draw(render_args.viewport(), |c, gl| match self.state {
+        match self.state {
             CellState::Opened => {
                 super::draw::draw_opened_cell(&self.position, &self.content, &c, gl, glyph_cache)
             }
             CellState::Flagged => super::draw::draw_flagged_cell(&self.position, &c, gl),
             _ => super::draw::draw_closed_cell(&self.position, &c, gl),
-        })
+        }
     }
 
     fn update(&mut self, _update_args: &UpdateArgs) {}
