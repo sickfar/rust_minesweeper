@@ -62,9 +62,10 @@ impl Game {
     pub fn new(size: FieldSize) -> Game {
         let field = field::Field::new(size);
         let width = field.width() as f64;
+        let mines = field.mines();
         Game {
             field,
-            menu: menu::Menu::new(width),
+            menu: menu::Menu::new(width, mines),
             mouse_position: None,
             game_state: GameState::Ready,
         }
@@ -116,6 +117,7 @@ impl Game {
                 match result {
                     menu::MenuButtonPressResult::NewGame => {
                         self.field.reset();
+                        self.menu.set_mines(self.field.mines());
                         self.game_state = GameState::Ready;
                     }
                     menu::MenuButtonPressResult::NoAction => {}
@@ -126,8 +128,11 @@ impl Game {
                     match result {
                         CellPressResult::Exploded => {
                             self.game_state = GameState::Loose;
+                            self.menu.stop_timer();
                         }
-                        CellPressResult::Flagged | CellPressResult::Unflagged => {}
+                        CellPressResult::Flagged | CellPressResult::Unflagged => {
+                            self.menu.set_mines(self.field.mines() - self.field.flags());
+                        }
                         CellPressResult::Opened => {}
                         _ => {}
                     }
@@ -148,6 +153,8 @@ impl Game {
         {
             self.game_state = GameState::Playing;
             self.field.init(cell_point);
+            self.menu.start_timer();
+            self.menu.set_mines(self.field.mines());
         }
         self.field.button_press(args, cell_point)
     }

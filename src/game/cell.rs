@@ -10,6 +10,7 @@ use crate::UpdateArgs;
 pub enum CellState {
     Closed,
     Opened,
+    Pressed,
     Flagged,
 }
 
@@ -34,6 +35,10 @@ impl Cell {
 
     pub fn position(&self) -> Point<u32> {
         self.position
+    }
+
+    pub fn can_be_opened(&self) -> bool {
+        self.state == CellState::Closed || self.state == CellState::Pressed
     }
 
     pub fn is_mine(&self) -> bool {
@@ -77,6 +82,10 @@ impl Cell {
     pub fn unflag(&mut self) {
         self.state = CellState::Closed;
     }
+
+    pub fn press(&mut self) {
+        self.state = CellState::Pressed;
+    }
 }
 
 impl GameElement for Cell {
@@ -90,6 +99,7 @@ impl GameElement for Cell {
                 gl,
                 glyph_cache,
             ),
+            CellState::Pressed => super::draw::draw_pressed_cell(self.position.to_f64(), &c, gl),
             CellState::Flagged => super::draw::draw_flagged_cell(self.position.to_f64(), &c, gl),
             _ => super::draw::draw_closed_cell(self.position.to_f64(), &c, gl),
         }

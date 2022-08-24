@@ -222,18 +222,24 @@ impl Field {
         button_args: &ButtonArgs,
         cell_point: Point<u32>,
     ) -> CellPressResult {
-        if button_args.state == ButtonState::Release {
+        if button_args.state == ButtonState::Press {
             if button_args.button == Button::from(MouseButton::Left) {
-                if self.cell_at_point(cell_point).state() == CellState::Closed {
+                if self.cell_at_point(cell_point).can_be_opened() {
+                    self.mut_cell_at_point(cell_point).press();
+                }
+            }
+        } else if button_args.state == ButtonState::Release {
+            if button_args.button == Button::from(MouseButton::Left) {
+                if self.cell_at_point(cell_point).can_be_opened() {
                     if self.cell_at_point(cell_point).is_empty() {
                         self.open_neighbours(self.cell_at_point(cell_point).position());
                     }
                     self.mut_cell_at_point(cell_point).open();
-                    if self.cell_at_point(cell_point).is_mine() {
-                        return CellPressResult::Exploded;
+                    return if self.cell_at_point(cell_point).is_mine() {
+                        CellPressResult::Exploded
                     } else {
-                        return CellPressResult::Opened;
-                    }
+                        CellPressResult::Opened
+                    };
                 }
             } else if button_args.button == Button::from(MouseButton::Right) {
                 if self.cell_at_point(cell_point).state() == CellState::Closed {
@@ -253,7 +259,6 @@ impl Field {
 
 impl GameElement for Field {
     fn render(&self, render_args: &RenderArgs, c: Context, gl: &mut GlGraphics, dd: &mut DrawData) {
-        graphics::clear(WHITE, gl);
         for row in 0..self.size.height {
             for col in 0..self.size.width {
                 let cell = &self.rows[row as usize][col as usize];

@@ -1,10 +1,11 @@
+use graphics::color::WHITE;
 use graphics::math::Matrix2d;
 use graphics::{Context, Transformed};
 use opengl_graphics::{GlGraphics, GlyphCache};
 
 use crate::game::cell::CellContent;
 use crate::game::Point;
-use crate::CELL_SIZE;
+use crate::{TextureSettings, CELL_SIZE};
 
 pub struct DrawData<'a> {
     pub glyph_cache: GlyphCache<'a>,
@@ -80,6 +81,7 @@ impl Rect {
 }
 
 const CELL_BLUE: [f32; 4] = [0.0, 0.6352941176470588, 0.9098039215686275, 1.0];
+const CELL_PRESSED_BLUE: [f32; 4] = [0.0, 150.0 / 255.0, 219.0 / 255.0, 1.0];
 const LIGHT_BLUE: [f32; 4] = [0.6, 0.8509803921568627, 0.9176470588235294, 1.0];
 const DARK_BLUE: [f32; 4] = [
     0.2588235294117647,
@@ -214,6 +216,24 @@ fn draw_flag_0(position: Point<f64>, gl: &mut GlGraphics, transform: Matrix2d) {
     );
 }
 
+pub fn draw_pressed_cell(position: Point<f64>, c: &Context, gl: &mut GlGraphics) {
+    draw_bordered_square_0(
+        CELL_PRESSED_BLUE,
+        DARK_BLUE,
+        DARK_BLUE,
+        LIGHT_BLUE,
+        LIGHT_BLUE,
+        Rect {
+            x: position.x * CELL_SIZE,
+            y: position.y * CELL_SIZE,
+            width: CELL_SIZE,
+            height: CELL_SIZE,
+        },
+        c.transform,
+        gl,
+    );
+}
+
 pub fn draw_closed_cell(position: Point<f64>, c: &Context, gl: &mut GlGraphics) {
     draw_closed_cell_0(position, c.transform, gl)
 }
@@ -296,4 +316,61 @@ pub fn draw_menu_button(rect: Rect, c: Context, gl: &mut GlGraphics) {
         c.transform,
         gl,
     );
+}
+
+pub fn draw_menu_button_pressed(rect: Rect, c: Context, gl: &mut GlGraphics) {
+    draw_bordered_square_0(
+        CELL_PRESSED_BLUE,
+        DARK_BLUE,
+        DARK_BLUE,
+        LIGHT_BLUE,
+        LIGHT_BLUE,
+        rect,
+        c.transform,
+        gl,
+    );
+}
+
+pub fn draw_timer(rect: Rect, sec: f64, c: Context, gl: &mut GlGraphics, dd: &mut DrawData) {
+    draw_bordered_square_0(
+        LIGHT_BLUE,
+        DARK_BLUE,
+        DARK_BLUE,
+        DARK_BLUE,
+        DARK_BLUE,
+        rect,
+        c.transform,
+        gl,
+    );
+    graphics::text(
+        WHITE,
+        (rect.height * 0.8) as u32,
+        format!("{:0>3.0}", sec).as_str(),
+        &mut dd.glyph_cache,
+        c.transform.trans(rect.x + 20.0, rect.y + rect.height * 0.8),
+        gl,
+    )
+    .expect("Cell text should be rendered");
+}
+
+pub fn draw_counter(rect: Rect, count: u32, c: Context, gl: &mut GlGraphics, dd: &mut DrawData) {
+    draw_bordered_square_0(
+        LIGHT_BLUE,
+        DARK_BLUE,
+        DARK_BLUE,
+        DARK_BLUE,
+        DARK_BLUE,
+        rect,
+        c.transform,
+        gl,
+    );
+    graphics::text(
+        WHITE,
+        (rect.height * 0.8) as u32,
+        format!("{:0>3.0}", count).as_str(),
+        &mut dd.glyph_cache,
+        c.transform.trans(rect.x + 20.0, rect.y + rect.height * 0.8),
+        gl,
+    )
+    .expect("Cell text should be rendered");
 }
