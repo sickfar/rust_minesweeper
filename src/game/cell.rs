@@ -83,11 +83,15 @@ impl GameElement for Cell {
     fn render(&self, _: &RenderArgs, c: Context, gl: &mut GlGraphics, dd: &mut DrawData) {
         let glyph_cache = &mut dd.glyph_cache;
         match self.state {
-            CellState::Opened => {
-                super::draw::draw_opened_cell(&self.position, &self.content, &c, gl, glyph_cache)
-            }
-            CellState::Flagged => super::draw::draw_flagged_cell(&self.position, &c, gl),
-            _ => super::draw::draw_closed_cell(&self.position, &c, gl),
+            CellState::Opened => super::draw::draw_opened_cell(
+                self.position.to_f64(),
+                &self.content,
+                &c,
+                gl,
+                glyph_cache,
+            ),
+            CellState::Flagged => super::draw::draw_flagged_cell(self.position.to_f64(), &c, gl),
+            _ => super::draw::draw_closed_cell(self.position.to_f64(), &c, gl),
         }
     }
 

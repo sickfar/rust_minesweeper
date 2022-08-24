@@ -6,7 +6,7 @@ use rand::Rng;
 
 use crate::game::cell::{Cell, CellState};
 use crate::game::draw::DrawData;
-use crate::game::{FieldSize, GameElement, Point};
+use crate::game::{CellPressResult, FieldSize, GameElement, Point};
 use crate::CELL_SIZE;
 
 pub const FIELD_SIZE_10: FieldSize = FieldSize {
@@ -28,22 +28,21 @@ pub const FIELD_SIZE_99: FieldSize = FieldSize {
 pub struct Field {
     rows: Vec<Vec<Cell>>,
     size: FieldSize,
-    mines: u32,
     flags: u32,
 }
 
 // public getters
 impl Field {
-    pub fn height(&self) -> u32 {
-        self.size.height * CELL_SIZE
+    pub fn height(&self) -> f64 {
+        self.size.height as f64 * CELL_SIZE
     }
 
-    pub fn width(&self) -> u32 {
-        self.size.width * CELL_SIZE
+    pub fn width(&self) -> f64 {
+        self.size.width as f64 * CELL_SIZE
     }
 
     pub fn mines(&self) -> u32 {
-        self.mines
+        self.size.mines
     }
 
     pub fn flags(&self) -> u32 {
@@ -138,14 +137,17 @@ fn generate_rows(size: &FieldSize) -> Vec<Vec<Cell>> {
 
 impl Field {
     pub fn new(size: FieldSize) -> Field {
-        let mut rows = generate_rows(&size);
         let field = Field {
-            rows,
-            mines: size.mines,
+            rows: generate_rows(&size),
             size,
             flags: 0,
         };
         field
+    }
+
+    pub fn reset(&mut self) {
+        self.rows = generate_rows(&self.size);
+        self.flags = 0;
     }
 
     pub fn init(&mut self, except_pos: Point<u32>) {
@@ -157,7 +159,7 @@ impl Field {
 
     fn randomize_mines(&mut self, except_pos: Point<u32>) {
         let mut rng = rand::thread_rng();
-        let mut mines = self.mines;
+        let mut mines = self.size.mines;
         while mines > 0 {
             let y = rng.gen_range(0..self.size.height);
             let x = rng.gen_range(0..self.size.width);
@@ -215,24 +217,37 @@ impl Field {
 
 // events
 impl Field {
-    pub fn button_press(&mut self, button_args: &ButtonArgs, cell_point: Point<u32>) {
+    pub fn button_press(
+        &mut self,
+        button_args: &ButtonArgs,
+        cell_point: Point<u32>,
+    ) -> CellPressResult {
         if button_args.state == ButtonState::Release {
             if button_args.button == Button::from(MouseButton::Left) {
                 if self.cell_at_point(cell_point).state() == CellState::Closed {
-                    self.mut_cell_at_point(cell_point).open();
                     if self.cell_at_point(cell_point).is_empty() {
                         self.open_neighbours(self.cell_at_point(cell_point).position());
+                    }
+                    self.mut_cell_at_point(cell_point).open();
+                    if self.cell_at_point(cell_point).is_mine() {
+                        return CellPressResult::Exploded;
+                    } else {
+                        return CellPressResult::Opened;
                     }
                 }
             } else if button_args.button == Button::from(MouseButton::Right) {
                 if self.cell_at_point(cell_point).state() == CellState::Closed {
                     self.mut_cell_at_point(cell_point).flag();
                     self.flags += 1;
+                    return CellPressResult::Flagged;
                 } else if self.cell_at_point(cell_point).state() == CellState::Flagged {
                     self.mut_cell_at_point(cell_point).unflag();
+                    self.flags -= 1;
+                    return CellPressResult::Unflagged;
                 }
             }
         }
+        CellPressResult::NoAction
     }
 }
 
