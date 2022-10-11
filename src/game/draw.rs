@@ -305,7 +305,13 @@ fn draw_mine_0(position: Point<f64>, gl: &mut GlGraphics, transform: Matrix2d) {
     );
 }
 
-pub fn draw_menu_button(rect: Rect, c: Context, gl: &mut GlGraphics) {
+pub fn draw_menu_button(
+    text: &str,
+    rect: Rect,
+    c: Context,
+    gl: &mut GlGraphics,
+    dd: &mut DrawData,
+) {
     draw_bordered_square_0(
         CELL_BLUE,
         LIGHT_BLUE,
@@ -316,9 +322,25 @@ pub fn draw_menu_button(rect: Rect, c: Context, gl: &mut GlGraphics) {
         c.transform,
         gl,
     );
+    graphics::text(
+        WHITE,
+        (rect.height * 0.6) as u32,
+        text,
+        &mut dd.glyph_cache,
+        c.transform
+            .trans(rect.x + 3.0, rect.y + rect.height * 0.6 + 3.0),
+        gl,
+    )
+    .expect("Button text should be rendered");
 }
 
-pub fn draw_menu_button_pressed(rect: Rect, c: Context, gl: &mut GlGraphics) {
+pub fn draw_menu_button_pressed(
+    text: &str,
+    rect: Rect,
+    c: Context,
+    gl: &mut GlGraphics,
+    dd: &mut DrawData,
+) {
     draw_bordered_square_0(
         CELL_PRESSED_BLUE,
         DARK_BLUE,
@@ -329,6 +351,16 @@ pub fn draw_menu_button_pressed(rect: Rect, c: Context, gl: &mut GlGraphics) {
         c.transform,
         gl,
     );
+    graphics::text(
+        WHITE,
+        (rect.height * 0.6) as u32,
+        text,
+        &mut dd.glyph_cache,
+        c.transform
+            .trans(rect.x + 3.0, rect.y + rect.height * 0.6 + 3.0),
+        gl,
+    )
+    .expect("Button text should be rendered");
 }
 
 pub fn draw_timer(rect: Rect, sec: f64, c: Context, gl: &mut GlGraphics, dd: &mut DrawData) {

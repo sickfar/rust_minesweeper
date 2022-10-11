@@ -4,9 +4,10 @@ use opengl_graphics::GlGraphics;
 use piston::{Button, ButtonArgs, ButtonState, MouseButton, RenderArgs, UpdateArgs};
 use rand::Rng;
 
-use crate::game::cell::{Cell, CellState};
+use crate::game::cell::CellContent::Number;
+use crate::game::cell::{Cell, CellContent, CellState};
 use crate::game::draw::DrawData;
-use crate::game::{CellPressResult, FieldSize, GameElement, Point};
+use crate::game::{CellInteractionResult, FieldSize, GameElement, Point};
 use crate::CELL_SIZE;
 
 pub const FIELD_SIZE_10: FieldSize = FieldSize {
@@ -29,6 +30,7 @@ pub struct Field {
     rows: Vec<Vec<Cell>>,
     size: FieldSize,
     flags: u32,
+    open: u32,
 }
 
 // public getters
@@ -47,6 +49,10 @@ impl Field {
 
     pub fn flags(&self) -> u32 {
         self.flags
+    }
+
+    pub fn cells_left(&self) -> u32 {
+        self.size.width * self.size.height - self.size.mines - self.open
     }
 }
 
@@ -141,6 +147,7 @@ impl Field {
             rows: generate_rows(&size),
             size,
             flags: 0,
+            open: 0,
         };
         field
     }
@@ -148,6 +155,7 @@ impl Field {
     pub fn reset(&mut self) {
         self.rows = generate_rows(&self.size);
         self.flags = 0;
+        self.open = 0;
     }
 
     pub fn init(&mut self, except_pos: Point<u32>) {
@@ -202,27 +210,57 @@ impl Field {
         }
     }
 
-    fn open_neighbours(&mut self, point: Point<u32>) {
+    fn open_neighbours(&mut self, point: Point<u32>) -> CellInteractionResult {
         let neighbours = self.get_neighbours(point);
+        let mut result = CellInteractionResult::Opened;
         for neighbour in neighbours {
             if self.cell_at(neighbour.x, neighbour.y).state() == CellState::Closed {
                 self.mut_cell_at(neighbour.x, neighbour.y).open();
+                self.open += 1;
+                if self.cell_at(neighbour.x, neighbour.y).content() == CellContent::Mine {
+                    result = CellInteractionResult::Exploded;
+                }
                 if self.cell_at(neighbour.x, neighbour.y).is_empty() {
                     self.open_neighbours(neighbour);
                 }
             }
         }
+        result
+    }
+
+    fn flags_in_neighbours(&self, point: Point<u32>) -> u8 {
+        let neighbours = self.get_neighbours(point);
+        let mut flags = 0;
+        for neighbour in neighbours {
+            if self.cell_at(neighbour.x, neighbour.y).state() == CellState::Flagged {
+                flags += 1
+            }
+        }
+        flags
     }
 }
 
 // events
 impl Field {
-    pub fn button_press(
+    pub fn button_action(
         &mut self,
         button_args: &ButtonArgs,
         cell_point: Point<u32>,
-    ) -> CellPressResult {
-        if button_args.state == ButtonState::Press {
+        both_buttons_flag: bool,
+    ) -> CellInteractionResult {
+        if both_buttons_flag {
+            if self.cell_at_point(cell_point).state() == CellState::Opened {
+                match self.cell_at_point(cell_point).content() {
+                    Number(number) => {
+                        if number == self.flags_in_neighbours(cell_point) {
+                            return self.open_neighbours(cell_point);
+                            return CellInteractionResult::Opened;
+                        }
+                    }
+                    _ => {}
+                }
+            }
+        } else if button_args.state == ButtonState::Press {
             if button_args.button == Button::from(MouseButton::Left) {
                 if self.cell_at_point(cell_point).can_be_opened() {
                     self.mut_cell_at_point(cell_point).press();
@@ -235,25 +273,26 @@ impl Field {
                         self.open_neighbours(self.cell_at_point(cell_point).position());
                     }
                     self.mut_cell_at_point(cell_point).open();
+                    self.open += 1;
                     return if self.cell_at_point(cell_point).is_mine() {
-                        CellPressResult::Exploded
+                        CellInteractionResult::Exploded
                     } else {
-                        CellPressResult::Opened
+                        CellInteractionResult::Opened
                     };
                 }
             } else if button_args.button == Button::from(MouseButton::Right) {
                 if self.cell_at_point(cell_point).state() == CellState::Closed {
                     self.mut_cell_at_point(cell_point).flag();
                     self.flags += 1;
-                    return CellPressResult::Flagged;
+                    return CellInteractionResult::Flagged;
                 } else if self.cell_at_point(cell_point).state() == CellState::Flagged {
                     self.mut_cell_at_point(cell_point).unflag();
                     self.flags -= 1;
-                    return CellPressResult::Unflagged;
+                    return CellInteractionResult::Unflagged;
                 }
             }
         }
-        CellPressResult::NoAction
+        CellInteractionResult::NoAction
     }
 }
 

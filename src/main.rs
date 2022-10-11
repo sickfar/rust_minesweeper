@@ -49,7 +49,7 @@ fn main() {
             game.mouse_move(&args);
         }
         if let Some(args) = e.button_args() {
-            game.button_press(&args);
+            game.button_action(&args);
         }
     }
 }

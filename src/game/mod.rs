@@ -43,7 +43,7 @@ pub enum GameState {
     Loose,
 }
 
-pub enum CellPressResult {
+pub enum CellInteractionResult {
     NoAction,
     Opened,
     Flagged,
@@ -56,6 +56,8 @@ pub struct Game {
     menu: menu::Menu,
     mouse_position: Option<Point<f64>>,
     game_state: GameState,
+    button_press_counter: u8,
+    both_buttons_flag: bool,
 }
 
 impl Game {
@@ -68,6 +70,8 @@ impl Game {
             menu: menu::Menu::new(width, mines),
             mouse_position: None,
             game_state: GameState::Ready,
+            button_press_counter: 0,
+            both_buttons_flag: false,
         }
     }
 }
@@ -110,30 +114,33 @@ impl Game {
         });
     }
 
-    pub fn button_press(&mut self, args: &ButtonArgs) {
+    pub fn button_action(&mut self, args: &ButtonArgs) {
         if let Some(point) = self.mouse_position {
             if point.y < self.menu.height() as f64 {
-                let result = self.menu.button_press(args, point);
+                let result = self.menu.button_action(args, point);
                 match result {
                     menu::MenuButtonPressResult::NewGame => {
-                        self.field.reset();
-                        self.menu.set_mines(self.field.mines());
-                        self.game_state = GameState::Ready;
+                        self.switch_state(GameState::Ready);
                     }
                     menu::MenuButtonPressResult::NoAction => {}
                 }
             } else {
                 if self.game_state == GameState::Ready || self.game_state == GameState::Playing {
-                    let result = self.button_press_field(args, point);
+                    let result = self.button_action_field(args, point);
                     match result {
-                        CellPressResult::Exploded => {
-                            self.game_state = GameState::Loose;
-                            self.menu.stop_timer();
+                        CellInteractionResult::Exploded => {
+                            self.switch_state(GameState::Loose);
+                            self.both_buttons_flag = false;
                         }
-                        CellPressResult::Flagged | CellPressResult::Unflagged => {
+                        CellInteractionResult::Flagged | CellInteractionResult::Unflagged => {
                             self.menu.set_mines(self.field.mines() - self.field.flags());
                         }
-                        CellPressResult::Opened => {}
+                        CellInteractionResult::Opened => {
+                            self.both_buttons_flag = false;
+                            if self.field.cells_left() == 0 {
+                                self.switch_state(GameState::Win);
+                            }
+                        }
                         _ => {}
                     }
                 }
@@ -141,7 +148,51 @@ impl Game {
         }
     }
 
-    fn button_press_field(&mut self, args: &ButtonArgs, point: Point<f64>) -> CellPressResult {
+    fn switch_state(&mut self, state: GameState) {
+        self.end_current_state();
+        self.enter_new_state(state)
+    }
+
+    fn end_current_state(&mut self) {
+        match self.game_state {
+            GameState::Ready => {}
+            GameState::Playing => {
+                self.menu.stop_timer();
+                self.button_press_counter = 0;
+                self.both_buttons_flag = false;
+            }
+            GameState::Win => {}
+            GameState::Loose => {}
+        }
+    }
+
+    fn enter_new_state(&mut self, state: GameState) {
+        self.game_state = state;
+        match self.game_state {
+            GameState::Ready => {
+                self.field.reset();
+                self.menu.set_mines(self.field.mines());
+                self.menu.set_ok();
+            }
+            GameState::Playing => {
+                self.menu.start_timer();
+                self.menu.set_mines(self.field.mines());
+                self.menu.set_ok();
+            }
+            GameState::Win => {
+                self.menu.set_win();
+            }
+            GameState::Loose => {
+                self.menu.set_loose();
+            }
+        }
+    }
+
+    fn button_action_field(
+        &mut self,
+        args: &ButtonArgs,
+        point: Point<f64>,
+    ) -> CellInteractionResult {
         let cell_point = Point {
             x: (point.x / CELL_SIZE as f64) as u32,
             y: ((point.y - self.menu.height() as f64) / CELL_SIZE as f64) as u32,
@@ -151,12 +202,28 @@ impl Game {
             && args.button == Button::from(MouseButton::Left)
             && self.game_state == GameState::Ready
         {
-            self.game_state = GameState::Playing;
             self.field.init(cell_point);
-            self.menu.start_timer();
-            self.menu.set_mines(self.field.mines());
+            self.enter_new_state(GameState::Playing);
         }
-        self.field.button_press(args, cell_point)
+        if args.state == ButtonState::Press
+            && (args.button == Button::from(MouseButton::Left)
+                || args.button == Button::from(MouseButton::Right))
+        {
+            self.button_press_counter += 1;
+            if self.button_press_counter == 2 {
+                self.both_buttons_flag = true;
+            }
+        } else if args.state == ButtonState::Release
+            && (args.button == Button::from(MouseButton::Left)
+                || args.button == Button::from(MouseButton::Right))
+        {
+            self.button_press_counter -= 1;
+        }
+        self.field.button_action(
+            args,
+            cell_point,
+            self.both_buttons_flag && self.button_press_counter == 1,
+        ) //this means unpressed last button
     }
 }
 

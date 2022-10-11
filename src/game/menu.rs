@@ -12,6 +12,10 @@ use piston::{Button, ButtonArgs, ButtonState, MouseButton, RenderArgs, UpdateArg
 pub const MENU_HEIGHT: f64 = 50.0;
 const MENU_BLUE: [f32; 4] = [0.273, 0.384, 0.940, 1.0];
 
+pub const GAME_OK: &str = ":-)";
+pub const GAME_WIN: &str = "B-)";
+pub const GAME_LOOSE: &str = "X-(";
+
 pub enum MenuButtonPressResult {
     NoAction,
     NewGame,
@@ -19,6 +23,7 @@ pub enum MenuButtonPressResult {
 
 struct GameButton {
     rect: Rect,
+    text: String,
     pressed: bool,
 }
 
@@ -50,6 +55,7 @@ impl Menu {
                     MENU_HEIGHT * 0.1,
                     MENU_HEIGHT * 0.8,
                 ),
+                text: String::from(GAME_OK),
                 pressed: false,
             },
             timer: Timer {
@@ -83,7 +89,7 @@ impl Menu {
 
 //events
 impl Menu {
-    pub fn button_press(
+    pub fn button_action(
         &mut self,
         button_args: &ButtonArgs,
         point: Point<f64>,
@@ -120,6 +126,18 @@ impl Menu {
     pub fn set_mines(&mut self, mines: u32) {
         self.mine_counter.mines = mines;
     }
+
+    pub fn set_ok(&mut self) {
+        self.game_button.text = String::from(GAME_OK);
+    }
+
+    pub fn set_win(&mut self) {
+        self.game_button.text = String::from(GAME_WIN);
+    }
+
+    pub fn set_loose(&mut self) {
+        self.game_button.text = String::from(GAME_LOOSE);
+    }
 }
 
 impl GameElement for Menu {
@@ -149,12 +167,12 @@ impl GameElement for GameButton {
         _render_args: &RenderArgs,
         c: Context,
         gl: &mut GlGraphics,
-        _dd: &mut DrawData,
+        dd: &mut DrawData,
     ) {
         if self.pressed {
-            draw_menu_button_pressed(self.rect, c, gl);
+            draw_menu_button_pressed(&self.text, self.rect, c, gl, dd);
         } else {
-            draw_menu_button(self.rect, c, gl);
+            draw_menu_button(&self.text, self.rect, c, gl, dd);
         }
     }
 

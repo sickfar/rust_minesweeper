@@ -14,7 +14,7 @@ pub enum CellState {
     Flagged,
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Copy, Clone)]
 pub enum CellContent {
     Empty,
     Mine,
@@ -47,6 +47,10 @@ impl Cell {
 
     pub fn is_empty(&self) -> bool {
         self.content == CellContent::Empty
+    }
+
+    pub fn content(&self) -> CellContent {
+        self.content
     }
 }
 
